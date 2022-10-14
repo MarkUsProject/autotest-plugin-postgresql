@@ -1,0 +1,29 @@
+{
+  "postgresql": {
+    "title": "",
+    "type": "object",
+    "properties": {
+      "enabled": {
+        "title": "PostgreSQL",
+        "type": "boolean"
+      }
+    },
+    "dependencies": {
+      "enabled": {
+        "oneOf": [
+          {
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "AUTOTEST_POSTGRES_RUN_AS_SUPERUSER": {
+                "title": "Run as superuser",
+                "type": "boolean"
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

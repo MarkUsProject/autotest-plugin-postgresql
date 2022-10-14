@@ -1,0 +1,12 @@
+{
+  "postgresql": {
+    "title": "",
+    "type": "object",
+    "properties": {
+      "enabled": {
+        "title": "PostgreSQL",
+        "type": "boolean"
+      }
+    }
+  }
+}

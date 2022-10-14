@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+
+settings() {
+  cat "$(dirname "$0")/schema.docker.json"
+}
+
+before_test() {
+  if [ "$AUTOTEST_POSTGRES_RUN_AS_SUPERUSER" = 'True' ]; then
+    # The host will be named the same as the first key in schema.docker.json (the plugin name)
+    # The password is defined in the Dockerfile and is hardcoded to "password"
+    # All other connection params should be the defaults
+    echo '{"PGHOST": "postgresql", "PGPASSWORD": "password"}'
+  else
+    echo '{"POSTGRES_USER": "autotest", "PGHOST": "postgresql", "PGPASSWORD": "password"}'
+  fi
+}
+
+[ "$1" = "settings" ] && settings
+[ "$1" = "before_test" ] && before_test

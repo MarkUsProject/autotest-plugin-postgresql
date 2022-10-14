@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+. "$(dirname "$0")/.env"
+
+install() {
+  echo "install"
+  if ! pg_isready -q; then
+    echo "Cannot connect to postgres database." 1>&2
+    echo "Please ensure that the connection settings in \'$(dirname "$0")/.env' are correct and try again" 1>&2
+    exit 1
+  fi
+  permissions=$(psql -qtA -c "SELECT count(*) FROM pg_roles WHERE rolcreaterole=true AND rolcreatedb=true AND rolname=current_user")
+  if [ "$permissions" != '1' ]; then
+    echo "Current postgres user must have CREATEROLE and CREATEDB permissions" 1>&2
+    echo "Run the following SQL command to update permissions for the current postgres user and try again:" 1>&2
+    echo "  ALTER USER $(psql -qtA -c "SELECT current_user") CREATEDB CREATEROLE;" 1>&2
+    exit 1
+  fi
+  databases=$(psql -qtA -c "SELECT datname FROM pg_database WHERE datistemplate = false AND datname!='postgres'")
+  if [ -n "$databases" ]; then
+    echo "[WARNING] Non-default databases already exist in this postgreSQL cluster." 1>&2
+    echo "[WARNING] These databases may deleted by the autotester." 1>&2
+    echo "[WARNING] We recommend using a postgreSQL cluster that is exclusively for the autotester" 1>&2
+  fi
+  users=$(psql -qtA -c "SELECT usename from pg_user where usename!='postgres'")
+  if [ -n "$users" ]; then
+    echo "[WARNING] Non-default users already exist in this postgreSQL cluster." 1>&2
+    echo "[WARNING] These users may be deleted or updated by the autotester" 1>&2
+    echo "[WARNING] We recommend using a postgreSQL cluster that is exclusively for the autotester" 1>&2
+  fi
+}
+
+settings() {
+  cat "$(dirname "$0")/schema.classic.json"
+}
+
+before_test() {
+  tester_user=$2
+  database=$tester_user
+  password=$(openssl rand -base64 32 | tr -dc 'a-zA-Z0-9' | cut -c1-15)
+  psql -qtA &> /dev/null <<EOF
+DROP DATABASE IF EXISTS ${database};
+CREATE DATABASE ${database} OWNER current_user;
+REVOKE CONNECT ON DATABASE ${database} FROM PUBLIC;
+DROP ROLE IF EXISTS ${tester_user};
+CREATE ROLE ${tester_user} LOGIN PASSWORD '${password}';
+GRANT CONNECT, CREATE ON DATABASE ${database} TO ${tester_user};
+EOF
+  # echo connection env variables as a json string
+  env_vars="$(grep -v -e PGPASSWORD -e PGDATABASE "$(dirname "$0")/.env" | sed 's/"/\\"/g' | sed -n 's/^\(PG.*\)=\(.*\)$/"\1": "\2"/p' | paste -d, -s)"
+  specific_env_vars="\"PGDATABASE\": \"$database\", \"PGPASSWORD\": \"$password\""
+  if [ -n "$env_vars" ]; then
+    env_vars="${env_vars},"
+  fi
+  echo "{ $env_vars $specific_env_vars }"
+}
+
+[ "$1" = "install" ] && install
+[ "$1" = "settings" ] && settings
+[ "$1" = "before_test" ] && before_test "$@"
