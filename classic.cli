@@ -3,7 +3,6 @@
 . "$(dirname "$0")/.env"
 
 install() {
-  echo "install"
   if ! pg_isready -q; then
     echo "Cannot connect to postgres database." 1>&2
     echo "Please ensure that the connection settings in \'$(dirname "$0")/.env' are correct and try again" 1>&2
