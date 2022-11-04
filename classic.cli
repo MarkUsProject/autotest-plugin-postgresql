@@ -57,3 +57,5 @@ EOF
 [ "$1" = "install" ] && install
 [ "$1" = "settings" ] && settings
 [ "$1" = "before_test" ] && before_test "$@"
+
+exit 0

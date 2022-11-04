@@ -17,3 +17,5 @@ before_test() {
 
 [ "$1" = "settings" ] && settings
 [ "$1" = "before_test" ] && before_test
+
+exit 0
